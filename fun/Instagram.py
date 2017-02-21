@@ -7,7 +7,7 @@ import json
 class Instagram:
     url = 'https://www.instagram.com/'
     url_tag = 'https://www.instagram.com/explore/tags/'
-    url_likes = 'https://www.instagram.com/web/likes/%s/like/'
+    url_like = 'https://www.instagram.com/web/likes/%s/like/'
     url_unlike = 'https://www.instagram.com/web/likes/%s/unlike/'
     url_comment = 'https://www.instagram.com/web/comments/%s/add/'
     url_follow = 'https://www.instagram.com/web/friendships/%s/follow/'
@@ -17,9 +17,9 @@ class Instagram:
     url_logout = 'https://www.instagram.com/accounts/logout/'
     url_media_detail = 'https://www.instagram.com/p/%s/?__a=1'
     url_user_detail = 'https://www.instagram.com/%s/?__a=1'
-    user_agent = ("Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/48.0.2564.103 Safari/537.36")
-    accept_language = 'ru-RU,ru;q=0.8,en-US;q=0.6,en;q=0.4'
+    user_agent = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36")
+    accept_language = 'en-US;q=0.6,en;q=0.4'
     csrftoken = None
     user_id = None
     user_infos = {}
@@ -77,7 +77,7 @@ class Instagram:
             data = json.loads(info.text)
             self.user_infos[username] = data
             return data
-        return self.user_infos['username']
+        return self.user_infos[username]
 
     def get_followers_next_page(self, user_id, cursor):
         data = {'q': 'ig_user(%s)' % user_id + '''
@@ -155,21 +155,30 @@ class Instagram:
     def get_random_media_by_tag(self, tag):
         pass
 
-    def follow_user(self, user_id):
-        url_follow = self.url_follow % user_id
+    def __post_event(self, url):
         try:
-            follow = self.session.post(url_follow)
-            if follow.status_code == 200:
+            response = self.session.post(url)
+            if response.status_code == 200:
                 print('... Complete:', flush=True)
-            return follow
+            else:
+                print('... ERROR.', flush=True)
+                print(response.text)
+            return response
         except:
             print('... Error!:', flush=True)
 
-    def unfollow_user(self, username):
-        pass
+    def follow_user(self, user_id):
+        url_follow = self.url_follow % user_id
+        self.__post_event(url_follow)
+
+    def unfollow_user(self, user_id):
+        url_unfollow = self.url_unfollow % user_id
+        self.__post_event(url_unfollow)
 
     def like_media(self, media_id):
-        pass
+        url_like = self.url_like % media_id
+        self.__post_event(url_like)
 
     def unlike_media(self, media_id):
-        pass
+        url_unlike = self.url_unlike % media_id
+        self.__post_event(url_unlike)

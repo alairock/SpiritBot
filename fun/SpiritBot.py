@@ -130,13 +130,13 @@ async def follow_users(instagram, user_list):
                     and not user_info['is_verified']
                     and user_wanted):
                 print('FOLLOW USER:', user_info['username'], end='', flush=True)
-                instagram.follow_user(user_info['id'])
+                r = instagram.follow_user(user_info['id'])
                 await db.insert_follow_count()
                 await db.add_user_to_followed(user_info['username'],
                                               user_info['id'])
-            fi = _FOLLOW_DATA['follow_interval']
-            time.sleep(int(random.randint(fi[0], fi[1])))
-        pass
+                fi = _FOLLOW_DATA['follow_interval']
+                time.sleep(int(random.randint(fi[0], fi[1])) *
+                           random.randint(20, 60) / random.randint(3, 5))
     #  TODO Save list to temp location, in case we exit or break
 
 async def follow_program(instagram):
@@ -145,8 +145,12 @@ async def follow_program(instagram):
     #  followers without over harvesting usernames
     while True:
         for username in _FOLLOW_DATA['similar_users']:
-            user_list = instagram.get_followers(username)
-            await follow_users(instagram, user_list)
+            try:
+                user_list = instagram.get_followers(username)
+                await follow_users(instagram, user_list)
+            except:
+                print('Issue running {username}, skipping.'
+                      .format(username=username))
 
 
 async def asyncrunner():

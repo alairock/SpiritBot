@@ -26,7 +26,7 @@ SpiritBot.follow(
     similar_tags=['arst', 'arst', 'rstd'],
     do_not_follow_users=['zac_efrain'],
     follows_per_day=(300, 350),
-    follow_interval=(1, 2)
+    follow_interval=(0, 5)
 )
 
 SpiritBot.unfollow(
