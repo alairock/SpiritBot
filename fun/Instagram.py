@@ -2,6 +2,7 @@ import requests
 import random
 import time
 import json
+from fun import db
 
 
 class Instagram:
@@ -79,6 +80,38 @@ class Instagram:
             return data
         return self.user_infos[username]
 
+    def get_following_payload(self, user_info, cursor=None):
+        q = 'ig_user(%s) {' % user_info['user']['id']
+        qcursor = ' follows.first(20) {'
+        if cursor is not None:
+            qcursor = ' follows.after(%s, 20) {' % cursor
+        q += qcursor + '''
+            count,
+            page_info {
+              end_cursor,
+              has_next_page
+            },
+            nodes {
+                id,
+                is_verified,
+                followed_by {count},
+                follows {count},
+                followed_by_viewer,
+                follows_viewer,
+                requested_by_viewer,
+                full_name,
+                profile_pic_url,
+                username
+                }
+            }
+        }
+        '''
+        data = {'q': q, 'ref': 'relationships::follow_list'}
+        r = self.session.post(self.url_query, data=data).json()
+        follow_list = r['followed_by']['nodes']
+        page_info = r['followed_by']['page_info']
+        return follow_list, page_info['end_cursor'], page_info['has_next_page']
+
     def get_followers_payload(self, user_info, cursor=None):
         q = 'ig_user(%s) {' % user_info['user']['id']
         qcursor = ' followed_by.first(20) {'
@@ -111,10 +144,9 @@ class Instagram:
         page_info = r['followed_by']['page_info']
         return follow_list, page_info['end_cursor'], page_info['has_next_page']
 
-    def get_followers(self, username):
+    def get_followers(self, username, cursorz=None):
         user_info = self.get_user_info(username)
         page_limit = 0
-        cursorz = None
         follow_list = []
         get_next = True
         while get_next and page_limit < 10:
@@ -126,7 +158,23 @@ class Instagram:
             print('.', end='', flush=True)
             time.sleep(random.randint(1, 5))
         print(' ')
-        return follow_list
+        return follow_list, cursorz
+
+    def get_following(self, username, cursorz=None):
+        user_info = self.get_user_info(username)
+        page_limit = 0
+        follow_list = []
+        get_next = True
+        while get_next and page_limit < 10:
+            ulist, cursorz, get_next = self.get_following_payload(
+                user_info=user_info,
+                cursor=cursorz)
+            follow_list = follow_list + ulist
+            page_limit += 1
+            print('.', end='', flush=True)
+            time.sleep(random.randint(1, 5))
+        print(' ')
+        return follow_list, cursorz
 
     def get_random_media_by_tag(self, tag):
         pass

@@ -157,7 +157,9 @@ async def follow_program(instagram):
     while True:
         for username in _FOLLOW_DATA['similar_users']:
             try:
-                user_list = instagram.get_followers(username)
+                cursorz = await db.get_follower_cursor(username)
+                user_list, cursorz = instagram.get_followers(username, cursorz)
+                await db.save_followers_cursor(username, cursorz)
                 await follow_users(instagram, user_list)
             except KeyboardInterrupt:
                 pass
@@ -165,6 +167,22 @@ async def follow_program(instagram):
                 print('Issue running {username}, skipping.'
                       .format(username=username))
 
+async def unfollow_program(instagram):
+    #  TODO: Currently going off username suggestions.
+    #  Tags will be the next step and is a better way to reach more
+    #  followers without over harvesting usernames
+    while True:
+        for username in get_follo:
+            try:
+                cursorz = await db.get_follower_cursor(username)
+                user_list, cursorz = instagram.get_followers(username, cursorz)
+                await db.save_followers_cursor(username, cursorz)
+                await follow_users(instagram, user_list)
+            except KeyboardInterrupt:
+                pass
+            except:
+                print('Issue running {username}, skipping.'
+                      .format(username=username))
 
 async def asyncrunner():
     global _UNWANTED_USERS_WITH_WORD_DEFAULT, _UNWANTED_USERS_WITH_WORD
