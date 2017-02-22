@@ -102,6 +102,15 @@ def log_stdout():
     _STDOUT = True
 
 async def is_user_desirable(user_info):
+    if (user_info['follows']['count'] / user_info['followed_by']['count']) > 6:
+        print('PROBABLE BOT. IGNORE:', user_info['username'])
+        return False
+    if (user_info['followed_by']['count']) > 25000:
+        print('PROBABLE CELEB. IGNORE:', user_info['username'])
+        # Neat, this is a celeb that *should be similar to our user. Lets add
+        # them to our list
+        _FOLLOW_DATA['similar_users'].append(user_info['username'])
+        return False
     if user_info['username'] in _FOLLOW_DATA['do_not_follow_users']:
         print('DO NOT FOLLOW:', user_info['username'])
         return False
@@ -111,7 +120,9 @@ async def is_user_desirable(user_info):
     if await db.previously_followed(user_info['username'], user_info['id']):
         print('ALREADY FOLLOWED:', user_info['username'])
         return False
-    #  TODO IF spam or super_famous SKIP
+    if user_info.get('followed_by_viewer'):
+        print('ALREADY FOLLOWED:', user_info['username'])
+        return False
     return True
 
 
@@ -130,14 +141,14 @@ async def follow_users(instagram, user_list):
                     and not user_info['is_verified']
                     and user_wanted):
                 print('FOLLOW USER:', user_info['username'], end='', flush=True)
-                r = instagram.follow_user(user_info['id'])
+                instagram.follow_user(user_info['id'])
                 await db.insert_follow_count()
                 await db.add_user_to_followed(user_info['username'],
                                               user_info['id'])
                 fi = _FOLLOW_DATA['follow_interval']
                 time.sleep(int(random.randint(fi[0], fi[1])) *
                            random.randint(20, 60) / random.randint(3, 5))
-    #  TODO Save list to temp location, in case we exit or break
+                #  TODO Save list to temp location, in case we exit or break
 
 async def follow_program(instagram):
     #  TODO: Currently going off username suggestions.
@@ -148,6 +159,8 @@ async def follow_program(instagram):
             try:
                 user_list = instagram.get_followers(username)
                 await follow_users(instagram, user_list)
+            except KeyboardInterrupt:
+                pass
             except:
                 print('Issue running {username}, skipping.'
                       .format(username=username))
@@ -159,15 +172,17 @@ async def asyncrunner():
         _UNWANTED_USERS_WITH_WORD
     instagram = Instagram()
     instagram.login(_USERNAME, _PASSWORD)
-    # print('I:', instagram.logged_in_user)
     if _LIKE:
-        instagram.like_media('')
+        pass
+        # instagram.like_media('')
     if _UNLIKE:
-        instagram.unlike_media('')
+        pass
+        # instagram.unlike_media('')
     if _FOLLOW:
         await follow_program(instagram)
     if _UNFOLLOW:
-        instagram.unfollow_user('')
+        pass
+        # instagram.unfollow_user('')
     if _STDOUT:
         print('std out')
 

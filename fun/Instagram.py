@@ -79,10 +79,12 @@ class Instagram:
             return data
         return self.user_infos[username]
 
-    def get_followers_next_page(self, user_id, cursor):
-        data = {'q': 'ig_user(%s)' % user_id + '''
-         {
-          followed_by.after(%s, 100) {
+    def get_followers_payload(self, user_info, cursor=None):
+        q = 'ig_user(%s) {' % user_info['user']['id']
+        qcursor = ' followed_by.first(20) {'
+        if cursor is not None:
+            qcursor = ' followed_by.after(%s, 20) {' % cursor
+        q += qcursor + '''
             count,
             page_info {
               end_cursor,
@@ -91,6 +93,8 @@ class Instagram:
             nodes {
                 id,
                 is_verified,
+                followed_by {count},
+                follows {count},
                 followed_by_viewer,
                 follows_viewer,
                 requested_by_viewer,
@@ -100,9 +104,8 @@ class Instagram:
                 }
             }
         }
-        ''' % cursor,
-                'ref': 'relationships::follow_list',
-                }
+        '''
+        data = {'q': q, 'ref': 'relationships::follow_list'}
         r = self.session.post(self.url_query, data=data).json()
         follow_list = r['followed_by']['nodes']
         page_info = r['followed_by']['page_info']
@@ -110,46 +113,19 @@ class Instagram:
 
     def get_followers(self, username):
         user_info = self.get_user_info(username)
-        # TODO: Optimize, most of "_next_page is duplicated here
-        data = {'q': '''
-        ig_user(%s) {
-          followed_by.first(20) {
-            count,
-            page_info {
-              end_cursor,
-              has_next_page
-            },
-            nodes {
-                id,
-                is_verified,
-                followed_by_viewer,
-                follows_viewer,
-                requested_by_viewer,
-                full_name,
-                profile_pic_url,
-                username
-                }
-            }
-        }
-        ''' % user_info['user']['id'],
-                'ref': 'relationships::follow_list',
-                }
-        r = self.session.post(self.url_query, data=data).json()
-        follow_list = r['followed_by']['nodes']
-        page_info = r['followed_by']['page_info']
-        cursorz = page_info['end_cursor']
-        if page_info['has_next_page']:
-            get_next = True
-            iterations = 0
-            while get_next or iterations > 20:
-                ulist, cursorz, get_next = self.get_followers_next_page(
-                    user_id=user_info['user']['id'],
-                    cursor=cursorz)
-                follow_list = follow_list + ulist
-                iterations += 1
-                time.sleep(1 * random.randint(1, 5))
-                print('.', end='', flush=True)
-            print(' ')
+        page_limit = 0
+        cursorz = None
+        follow_list = []
+        get_next = True
+        while get_next and page_limit < 10:
+            ulist, cursorz, get_next = self.get_followers_payload(
+                user_info=user_info,
+                cursor=cursorz)
+            follow_list = follow_list + ulist
+            page_limit += 1
+            print('.', end='', flush=True)
+            time.sleep(random.randint(1, 5))
+        print(' ')
         return follow_list
 
     def get_random_media_by_tag(self, tag):
@@ -161,7 +137,7 @@ class Instagram:
             if response.status_code == 200:
                 print('... Complete:', flush=True)
             else:
-                print('... ERROR.', flush=True)
+                print('... ERROR on ' + url, flush=True)
                 print(response.text)
             return response
         except:

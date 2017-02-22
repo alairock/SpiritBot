@@ -22,9 +22,9 @@ SpiritBot.unlike(
 )
 
 SpiritBot.follow(
-    similar_users=['rstd', 'wfpg', 'tdhn', 'al4b'],
+    similar_users=['adashoreofficial', 'alairock', 'underoath', 'wylermedia'],
     similar_tags=['arst', 'arst', 'rstd'],
-    do_not_follow_users=['zac_efrain'],
+    do_not_follow_users=[],
     follows_per_day=(300, 350),
     follow_interval=(0, 5)
 )
